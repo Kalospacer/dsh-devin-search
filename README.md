@@ -162,3 +162,8 @@ cd packages/pi-devin-search && npm pack --dry-run
 ### License
 
 [MIT](./LICENSE) — 所有源码、会话记录与凭证默认存储于用户本地，尊重代码主权与数据隐私。
+
+### 作者真人说明
+
+注意，我自己是不用dsh，如果有版本更新卡住了什么的，欢迎朋友们提PR哈，我这边合了，在npm更新下包，当然自己fork更方便，一个小工具而已
+广告：欢迎使用我另外一个项目Piwin，十分好看，优雅，好看到爆炸的desktop，这里的两个功能其实是从piwin拆出来的
