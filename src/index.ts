@@ -27,20 +27,34 @@ export async function createRuntime(ctx: Context, options: FixtureOptions = {}, 
   await sessions.reload();
   ctx.authorization.registerFlow({ key: KEY, label: 'Devin search', methods: [{ id: 'oauth', label: 'Local browser callback (PKCE)' }, { id: 'code', label: 'Paste authorization code (remote-safe PKCE)' }], run: session => sessions.run(session) });
   mountLoginApi(ctx, sessions);
-  const commands = {
-    'devin-login': { description: 'Start Devin code login; use local for a same-machine browser callback.', run: (signal: AbortSignal, input = '') => {
-      const mode = input.trim();
-      if (mode && mode !== 'local') throw new Error('Use /devin-login or /devin-login local. Never paste a code into chat.');
-      return sessions.login(signal, mode === 'local' ? 'loopback' : 'code');
-    } },
+  const commands: Record<string, {
+    description: string;
+    input?: { hint: string };
+    run: (signal: AbortSignal, input?: string) => Promise<string> | string;
+  }> = {
+    'devin-login': {
+      description: 'Start Devin code login; use local for a same-machine browser callback.',
+      input: { hint: '[local]' },
+      run: (signal: AbortSignal, input = '') => {
+        const mode = input.trim();
+        if (mode && mode !== 'local') throw new Error('Use /devin-login or /devin-login local. Never paste a code into chat.');
+        return sessions.login(signal, mode === 'local' ? 'loopback' : 'code');
+      },
+    },
     'devin-status': { description: 'Inspect Devin login state without exposing credentials.', run: () => sessions.status() },
     'devin-logout': { description: 'Cancel login/search and delete the stored Devin session.', run: async () => { await sessions.logout(); return 'Logged out; stored Devin session cleared.'; } },
     'devin-cancel': { description: 'Cancel pending Devin authorization.', run: async () => { sessions.cancel(); return 'Login cancelled.'; } },
   };
-  for (const [commandName, command] of Object.entries(commands)) ctx.commands.register({ name: commandName, description: command.description, recordInput: false, handler: async invocation => {
-    try { return { kind: 'success', text: await command.run(invocation.signal, invocation.rawInput) }; }
-    catch (error) { return { kind: 'error', text: safeError(error) }; }
-  } });
+  for (const [commandName, command] of Object.entries(commands)) ctx.commands.register({
+    name: commandName,
+    description: command.description,
+    ...(command.input ? { input: command.input } : {}),
+    recordInput: false,
+    handler: async invocation => {
+      try { return { kind: 'success', text: await command.run(invocation.signal, invocation.rawInput) }; }
+      catch (error) { return { kind: 'error', text: safeError(error) }; }
+    },
+  });
   const provider = webProvider(sessions, options.web);
   ctx.web.registerSearchProvider({ ...provider, available: () => enabled(config.webSearch) && provider.available(), search: (args, signal) => {
     if (!enabled(config.webSearch)) throw new Error('web_search is disabled in Devin search settings.');

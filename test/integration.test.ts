@@ -136,4 +136,20 @@ describe('genuine Cordis seams + credentials-local persistence', () => {
     expect(description).toContain('Read the relevant code to verify behavior before editing or answering');
     expect(description).toContain('Cloud-assisted read-only semantic code search in the local session workspace. Selected code is sent to Devin/Windsurf cloud. Never remote workspaces.');
   });
+  it('registers devin-login with input descriptor for optional local mode and keeps bare commands input-free', async () => {
+    const h = await harness(await home()); cleanups.push(() => h.close());
+    const login = h.ctx.commands.find(h.agent, 'devin-login');
+    expect(login?.input).toEqual({ hint: '[local]' });
+    const list = h.ctx.commands.list(h.agent);
+    const loginDesc = list.find(c => c.name === 'devin-login');
+    expect(loginDesc?.input).toEqual({ hint: '[local]' });
+
+    // Status, logout, cancel must omit input so UI keeps them bare
+    expect(h.ctx.commands.find(h.agent, 'devin-status')?.input).toBeUndefined();
+    expect(h.ctx.commands.find(h.agent, 'devin-logout')?.input).toBeUndefined();
+    expect(h.ctx.commands.find(h.agent, 'devin-cancel')?.input).toBeUndefined();
+    expect(list.find(c => c.name === 'devin-status')?.input).toBeUndefined();
+    expect(list.find(c => c.name === 'devin-logout')?.input).toBeUndefined();
+    expect(list.find(c => c.name === 'devin-cancel')?.input).toBeUndefined();
+  });
 });
